@@ -14,11 +14,6 @@ bool InventorySystem.CheckIfWeHaveItem( ItemType itemType, int Count);*/
 
 // experience resets every level and requirement is switched for each level
 
-
-using System.Runtime.CompilerServices;
-using System.Collections.Generic;
-using Microsoft.VisualBasic;
-
 public class CharacterBaseStats
 {
 
@@ -55,44 +50,89 @@ public class CharacterBaseStats
 }
 class SonPlayer
 {
-    public CharacterBaseStats SonStats = new CharacterBaseStats(100,1, 0, 5, 5, 0, false, false, false, false,false);
-    public void AttackEnemy()
+
+
+    public CharacterBaseStats SonStats = new CharacterBaseStats(100, 1, 0, 5, 5, 0, false, false, false, false, false);
+    public Dagger SonDagger = new Dagger();
+
+    CharacterBaseStats chosenTarget;
+
+    //private UniverseEnemy Univese = new UniverseEnemy();
+
+    int chance;
+    int damage;
+
+    public SonPlayer()
     {
-       
+        damage = SonDagger.DaggerStats.Attack + (SonStats.Attack / 4);
+        //SonStats.Attack = SonDagger.DaggerStats.Attack;
     }
-    public void CheckHealth() // makes sure health never goes above 100 or below 0
+
+    // create a chance where son immediately takes guard for esther
+    public void AttackEnemy(CharacterBaseStats universeStats)
     {
-        if (SonStats.Health < 0) {  SonStats.Health = 0; }
-        if (SonStats.Health > 100) {  SonStats.Health = 100; }
+        Console.WriteLine("Son slashes at the enemy!");
+        RollChance();
+        if (chance > 10)
+        {
+            universeStats.Health = universeStats.Health - damage;
+            Console.WriteLine($"The Universe takes {damage} damage! The Universe has {universeStats.Health} health left.");
+            //CheckHealth();
+        }
+        else
+        {
+            Console.WriteLine("Son misses.");
+        }
     }
 
+    private void RollChance()
+    {
+        Random RNG = new Random();
+        chance = RNG.Next(0, 101);
+    }
+    public void CheckHealth(CharacterBaseStats universeStats) // makes sure health never goes above 100 or below 0
+    {
+        if (universeStats.Health < 0 || universeStats.Health == 0)
+        {
+            universeStats.Health = 0;
+            universeStats.FallenStatus = true;
+            Console.WriteLine("The Universe goes quiet.");
+        }
+        if (universeStats.Health > 100) { universeStats.Health = 100; }
+    }
 
-}
-
-class SonActions
-{
 
 }
 
 class EstherPlayer
 {
-    public CharacterBaseStats EstherStats = new CharacterBaseStats(80,1, 0, 5, 5, 0, false, false, false, false, false); // adjust this later pls
+    public CharacterBaseStats EstherStats = new CharacterBaseStats(80, 1, 0, 5, 5, 0, false, false, false, false, false); // adjust this later pls
 }
 
-class EstherActions
-{
-
-}
 
 class UniverseEnemy
 {
     // create method for each type of attack / skill
-    
-    public CharacterBaseStats UniverseStats = new CharacterBaseStats(200,12, 0, 5, 5, 0, false, false, false, false, false);
+    public CharacterBaseStats UniverseStats;
+    //public CharacterBaseStats UniverseStats = new CharacterBaseStats(200, 12, 0, 5, 5, 0, false, false, false, false, false);
     public UniverseEnemy(SonPlayer son, EstherPlayer esther)
     {
         this.son = son;
         this.esther = esther;
+
+        UniverseStats = new CharacterBaseStats(
+        health: 200,
+        level: 12,
+        experience: 0,
+        attack: 5,
+        defense: 5,
+        devotion: 0,
+        panickingStatus: false,
+        bleedingStatus: false,
+        tiredStatus: false,
+        exhaustedStatus: false,
+        fallenStatus: false
+        );
     }
 
     private CharacterBaseStats chosenTarget;
@@ -113,14 +153,14 @@ class UniverseEnemy
         {
             PassJudgementSkill();
         }
-        else if (RNG.Next(0,3) == 2 && UniverseStats.Health < 200)
+        else if (RNG.Next(0, 3) == 2 && UniverseStats.Health < 200)
         {
             HealSkill();
         }
         else { ChooseAction(); }
 
     }
-    
+
     public void CheckHealth() // makes sure health never goes above 100 or below 0
     {
         if (chosenTarget.Health < 0 || chosenTarget.Health == 0)
@@ -139,7 +179,7 @@ class UniverseEnemy
     public void ChooseTarget()
     {
         Random RNG = new Random();
-        
+
 
         if (RNG.Next(0, 2) == 0 && !son.SonStats.FallenStatus)
         {
@@ -162,14 +202,14 @@ class UniverseEnemy
     {
         Console.WriteLine("The Universe answers a prayer.");
         UniverseStats.Health += 15;
-        if ( UniverseStats.Health > 200 ) { UniverseStats.Health = 200;}
+        if (UniverseStats.Health > 200) { UniverseStats.Health = 200; }
         Console.WriteLine($"The Universe regains 15 health! The Universe has {UniverseStats.Health} health left.");
     }
 
-    public void RollChance()
+    private void RollChance()
     {
         Random RNG = new Random();
-        chance = RNG.Next(0,101);
+        chance = RNG.Next(0, 101);
     }
     void GazeSkill() // Makes the targeted player panic.
     {
@@ -193,7 +233,7 @@ class UniverseEnemy
         Console.WriteLine("The Universe calls out..");
         ChooseTarget();
         RollChance();
-        while (chosenTarget.FallenStatus == true) { ChooseTarget();}
+        while (chosenTarget.FallenStatus == true) { ChooseTarget(); }
         if (chance > 10)
         {
             chosenTarget.Health = chosenTarget.Health - 20;
@@ -217,26 +257,81 @@ class Program
 {
     static void Main(string[] args)
     {
-        
+
         SonPlayer son = new SonPlayer();
         EstherPlayer esther = new EstherPlayer();
         UniverseEnemy universe = new UniverseEnemy(son, esther);
 
-        static void StartTurn(UniverseEnemy universe)
+
+
+        while (esther.EstherStats.FallenStatus == false || son.SonStats.FallenStatus == false) // switch to loop
         {
-            universe.ChooseAction();
-            universe.UniverseStats.Health -= 15;
-            Console.WriteLine($"The Universe loses 15 health. It has {universe.UniverseStats.Health} health remaining.");
+            if (universe.UniverseStats.FallenStatus == true) { break; }
+            PlayerTurn(esther, son, universe);
+            EnemyTurn(universe);
+
+
+            // create method to check if health = 0
         }
 
-        while (esther.EstherStats.FallenStatus == false || son.SonStats.FallenStatus == false)
+        static void EnemyTurn(UniverseEnemy universe)
         {
-            StartTurn(universe);
-            // create method to check if health = 0
+            universe.ChooseAction();
+            //universe.UniverseStats.Health -= 15;
+            //Console.WriteLine($"The Universe loses 15 health. It has {universe.UniverseStats.Health} health remaining.");
+        }
+
+        static void PlayerTurn(EstherPlayer esther, SonPlayer son, UniverseEnemy universe)
+        {
+            Console.WriteLine($"\nSon has {son.SonStats.Health} health remaining. Esther has {esther.EstherStats.Health} remaining. What does Son do?\n1 - Attack\n2 - Skills\n3 - Spells\n4 - Guard\n5 - Pray\n");
+            string input = Console.ReadLine();
+            switch (input)
+            {
+                case "Attack":
+                case "1":
+                    son.AttackEnemy(universe.UniverseStats);
+                    break;
+                case "Skills":
+                case "2":
+                    break;
+                case "Spells":
+                case "3":
+                    Console.WriteLine("Well done");
+                    break;
+                case "Guard":
+                case "4":
+                    Console.WriteLine("You passed");
+                    break;
+                case "Pray":
+                case "5":
+                    Console.WriteLine("Better try again");
+                    break;
+                default:
+                    Console.WriteLine("Invalid grade");
+                    break;
+            }
+
         }
 
         Console.WriteLine("The world fades...");
     }
 }
+
+    public class WeaponBaseStats
+    {
+        public int Level { get; set; }
+        public int Attack { get; set; }
+        public bool CauseBleeding { get; set; }
+        public WeaponBaseStats(int level, int attack, bool causeBleeding)
+        {
+            this.Level = level;
+            this.Attack = (int)Math.Round(level * 1.5) + attack;
+            this.CauseBleeding = causeBleeding;
+        }
+    }
+    class Dagger
+    {
+        public WeaponBaseStats DaggerStats = new WeaponBaseStats(3, 5, true);
+    }
 
 
